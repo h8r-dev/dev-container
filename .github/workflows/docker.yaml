@@ -15,17 +15,27 @@ jobs:
       matrix:
         include:
           - name: golang
+            version_key: "GO_VERSION"
+            version: "1.16"
             dockerfile: ./golang/Dockerfile
-          - name: node
-            dockerfile: ./node/Dockerfile
-          - name: php
-            dockerfile: ./php/Dockerfile
-          - name: python
-            dockerfile: ./python/Dockerfile
-          - name: ruby
-            dockerfile: ./ruby/Dockerfile
-          - name: java
-            dockerfile: ./java/Dockerfile
+          - name: golang
+            version_key: "GO_VERSION"
+            version: "1.17"
+            dockerfile: ./golang/Dockerfile
+          - name: golang
+            version_key: "GO_VERSION"
+            version: "1.18"
+            dockerfile: ./golang/Dockerfile
+          # - name: node
+          #   dockerfile: ./node/Dockerfile
+          # - name: php
+          #   dockerfile: ./php/Dockerfile
+          # - name: python
+          #   dockerfile: ./python/Dockerfile
+          # - name: ruby
+          #   dockerfile: ./ruby/Dockerfile
+          # - name: java
+          #   dockerfile: ./java/Dockerfile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,6 +47,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
@@ -45,12 +62,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push to GitHub Container Registry
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}/dev-${{ matrix.name }}
+            heighlinerdev/dev-${{ matrix.name }}
+          tags: |
+            type=raw,value=${{ matrix.version }}
+            type=sha,format=long,prefix=${{ matrix.version }}-
+
+      - name: Build and push to Registry
         uses: docker/build-push-action@v3
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.name }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ${{ matrix.version_key }}=${{ matrix.version }}

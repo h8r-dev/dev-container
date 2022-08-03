@@ -3,10 +3,10 @@ name: ci
 on:
   push:
     branches:
-      - 'main'
+      - "main"
   pull_request:
     branches:
-      - 'main'
+      - "main"
 
 jobs:
   docker:
@@ -25,6 +25,10 @@ jobs:
           - name: golang
             version_key: "GO_VERSION"
             version: "1.18"
+            dockerfile: ./golang/Dockerfile
+          - name: golang
+            version_key: "GO_VERSION"
+            version: "1.19"
             dockerfile: ./golang/Dockerfile
           # - name: node
           #   dockerfile: ./node/Dockerfile
